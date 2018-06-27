@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<block>
+  <name>RSP1A Source</name>
+  <key>sdrplay_rsp1a_source</key>
+  <category>[SDRplay]</category>
+  <import>import sdrplay</import>
+  <make>sdrplay.rsp1a_source()</make>
+  <source>
+    <name>out</name>
+    <type>complex</type>
+  </source>
+</block>

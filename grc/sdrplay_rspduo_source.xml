@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<block>
+  <name>RSPduo Source</name>
+  <key>sdrplay_rspduo_source</key>
+  <category>[SDRplay]</category>
+  <import>import sdrplay</import>
+  <make>sdrplay.rspduo_source()</make>
+  <source>
+    <name>out</name>
+    <type>complex</type>
+  </source>
+</block>
