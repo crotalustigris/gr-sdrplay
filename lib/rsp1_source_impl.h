@@ -22,27 +22,41 @@
 #define INCLUDED_SDRPLAY_RSP1_SOURCE_IMPL_H
 
 #include <sdrplay/rsp1_source.h>
-#include "rsp_base.h"
+#include <mirsdrapi-rsp.h>
+#include "rsp_dev.h"
+
 
 namespace gr {
-  namespace sdrplay {
+    namespace sdrplay {
 
-    class rsp1_source_impl : public rsp1_source
-    {
-     private:
-      // Nothing to declare in this block.
+        class rsp1_source_impl : public rsp1_source {
+        private:
+            rsp_dev *dev;
 
-     public:
-      rsp1_source_impl();
-      ~rsp1_source_impl();
+        public:
 
-      // Where all the action really happens
-      int work(int noutput_items,
-         gr_vector_const_void_star &input_items,
-         gr_vector_void_star &output_items);
-    };
+            explicit rsp1_source_impl(double rf_freq, double bw, bool agc_enabled, double if_atten_db,
+                                      bool dc_offset_mode, bool iq_balance_mode, bool debug_enabled, int if_type,
+                                      int lo_mode, double sample_rate,
+                                      int lna_atten_step,
+                                      std::string device_serial);
 
-  } // namespace sdrplay
+            ~rsp1_source_impl();
+
+            int work(int noutput_items,
+                     gr_vector_const_void_star &input_items,
+                     gr_vector_void_star &output_items);
+
+            void set_rf_freq(float rf_freq);
+
+            void set_agc_enabled(bool agc_enabled);
+
+            void set_if_atten_db(int if_atten_db);
+
+            void set_lna_atten_step(int lna_atten_step);
+        };
+
+    } // namespace sdrplay
 } // namespace gr
 
 #endif /* INCLUDED_SDRPLAY_RSP1_SOURCE_IMPL_H */
