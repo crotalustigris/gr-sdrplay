@@ -5,6 +5,6 @@ If using a PYBOMBS prefix setup, do not forget to source the env vars with setup
 <pre>
 cd gr-sdrplay
 mkdir build && cmake .. && make
-sudo make install
+sudo make install && sudo ldconfig
 </pre>
 
