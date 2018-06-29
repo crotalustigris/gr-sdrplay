@@ -30,7 +30,7 @@ namespace gr {
     void
     qa_rsp1a_source::t1()
     {
-      // Put test here
+
     }
 
   } /* namespace sdrplay */

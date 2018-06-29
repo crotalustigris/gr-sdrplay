@@ -22,7 +22,9 @@
 # Setup library
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
+include(GrBoost)
 
+add_definitions(-std=c++11)
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
@@ -31,13 +33,14 @@ list(APPEND sdrplay_sources
     rsp1a_source_impl.cc
     rsp2_source_impl.cc
     rspduo_source_impl.cc
+	rsp_dev.cc
 )
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 find_package(LibSDRplay)
 
 if (NOT LIBSDRPLAY_FOUND)
-	message(FATAL_ERROR "SDRPlay development files not found...")
+	message(FATAL_ERROR "SDRPlay development files not found... Please visit sdrplay, download and install the API")
 endif ()
 
 
@@ -53,7 +56,7 @@ if(NOT sdrplay_sources)
 endif(NOT sdrplay_sources)
 
 add_library(gnuradio-sdrplay SHARED ${sdrplay_sources})
-target_link_libraries(gnuradio-sdrplay ${Boost_LIBRARIES} ${GNURADIO_ALL_LIBRARIES} mirsdrapi-rsp)
+target_link_libraries(gnuradio-sdrplay ${Boost_LIBRARIES} ${GNURADIO_ALL_LIBRARIES} ${LIBSDRPLAY_LIBRARIES})
 set_target_properties(gnuradio-sdrplay PROPERTIES DEFINE_SYMBOL "gnuradio_sdrplay_EXPORTS")
 
 if(APPLE)
@@ -84,7 +87,7 @@ list(APPEND test_sdrplay_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/qa_rsp1_source.cc
 )
 
-add_executable(test-sdrplay ${test_sdrplay_sources} rsp_base.h)
+add_executable(test-sdrplay ${test_sdrplay_sources})
 
 target_link_libraries(
   test-sdrplay

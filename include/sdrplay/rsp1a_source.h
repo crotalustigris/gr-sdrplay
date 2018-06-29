@@ -25,31 +25,36 @@
 #include <sdrplay/api.h>
 #include <gnuradio/sync_block.h>
 
+
 namespace gr {
-  namespace sdrplay {
+    namespace sdrplay {
 
-    /*!
-     * \brief <+description of block+>
-     * \ingroup sdrplay
-     *
-     */
-    class SDRPLAY_API rsp1a_source : virtual public gr::sync_block
-    {
-     public:
-      typedef boost::shared_ptr<rsp1a_source> sptr;
+        /*!
+         * \brief <+description of block+>
+         * \ingroup sdrplay
+         *
+         */
+        class SDRPLAY_API rsp1a_source : virtual public gr::sync_block {
+        public:
+            typedef boost::shared_ptr<rsp1a_source> sptr;
 
-      /*!
-       * \brief Return a shared_ptr to a new instance of sdrplay::rsp1a_source.
-       *
-       * To avoid accidental use of raw pointers, sdrplay::rsp1a_source's
-       * constructor is in a private implementation
-       * class. sdrplay::rsp1a_source::make is the public interface for
-       * creating new instances.
-       */
-      static sptr make();
-    };
+            static sptr make(double rf_freq, double bw, bool agc_enabled, double if_atten_db,
+                             bool dc_offset_mode, bool iq_balance_mode, bool debug_enabled, int if_type, int lo_mode,
+                             double sample_rate, bool bcast_notch, bool dab_notch, int lna_atten_step, bool bias_t,
+                             std::string device_serial);
 
-  } // namespace sdrplay
+            virtual void set_rf_freq(float rf_freq) = 0;
+
+            virtual void set_agc_enabled(bool agc_enabled) = 0;
+
+            virtual void set_if_atten_db(int if_atten_db) = 0;
+            virtual void set_lna_atten_step(int lna_atten_step) = 0;
+
+
+            virtual void set_biasT(bool bias_t) = 0;
+        };
+
+    } // namespace sdrplay
 } // namespace gr
 
 #endif /* INCLUDED_SDRPLAY_RSP1A_SOURCE_H */

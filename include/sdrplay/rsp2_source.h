@@ -35,18 +35,20 @@ namespace gr {
      */
     class SDRPLAY_API rsp2_source : virtual public gr::sync_block
     {
-     public:
-      typedef boost::shared_ptr<rsp2_source> sptr;
+    public:
+        typedef boost::shared_ptr<rsp2_source> sptr;
 
-      /*!
-       * \brief Return a shared_ptr to a new instance of sdrplay::rsp2_source.
-       *
-       * To avoid accidental use of raw pointers, sdrplay::rsp2_source's
-       * constructor is in a private implementation
-       * class. sdrplay::rsp2_source::make is the public interface for
-       * creating new instances.
-       */
-      static sptr make();
+        static sptr make(double rf_freq, double bw, bool agc_enabled, double if_atten_db,
+                         bool dc_offset_mode, bool iq_balance_mode, bool debug_enabled, int if_type, int lo_mode,
+                         double sample_rate, int lna_atten_step,
+                         std::string device_serial, std::string antenna);
+
+        virtual void set_rf_freq(float rf_freq) = 0;
+
+        virtual void set_agc_enabled(bool agc_enabled) = 0;
+
+        virtual void set_if_atten_db(int if_atten_db) = 0;
+        virtual void set_lna_atten_step(int lna_atten_step) = 0;
     };
 
   } // namespace sdrplay
