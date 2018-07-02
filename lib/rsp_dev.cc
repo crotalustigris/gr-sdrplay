@@ -2,7 +2,7 @@
 /*
  * gr-sdrplay Copyright 2018 HB9FXQ, Frank Werner-Krippendorf.
  *
- * Lot's of credits for the rsp_dev class goes go to:
+ * Credits for the rsp_dev class goes go to:
  * gr-osmosdr Copyright 2018 Jeff Long <willcode4@gmail.com> of the gr-osmosdr-fork!
  *
  * This is free software; you can redistribute it and/or modify
