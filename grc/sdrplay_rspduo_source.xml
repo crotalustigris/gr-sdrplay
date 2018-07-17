@@ -2,7 +2,7 @@
 <block>
     <name>RSPduo Source</name>
     <key>sdrplay_rspduo_source</key>
-    <category>[SDRplay]</category>
+    <category>SDRplay</category>
     <import>import sdrplay</import>
     <make>sdrplay.rspduo_source($rf_freq, $bw, $agc_enabled, $if_atten_db, $dc_offset_mode, $iq_balance_mode,
         $debug_enabled, $ifType, $lo_mode, $sample_rate, $bcast_notch, $dab_notch, $lna_atten_step, $biasT,
@@ -209,4 +209,7 @@
         <name>out</name>
         <type>complex</type>
     </source>
+    <doc>
+        The SDRplay RSPduo Source block
+    </doc>
 </block>

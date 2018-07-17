@@ -35,24 +35,29 @@
 #include <mutex>
 #include <mirsdrapi-rsp.h>
 
-#define MAX_SUPPORTED_DEVICES   4
+namespace gr
+{
+namespace sdrplay
+{
+
+#define MAX_SUPPORTED_DEVICES 4
 
 using namespace boost::assign;
 
 // Index by mir_sdr_Bw_MHzT
 static std::vector<double> bandwidths = {
-        0,     // Dummy
-        200e3,
-        300e3,
-        600e3,
-        1536e3,
-        5000e3,
-        6000e3,
-        7000e3,
-        8000e3
-};
+    0, // Dummy
+    200e3,
+    300e3,
+    600e3,
+    1536e3,
+    5000e3,
+    6000e3,
+    7000e3,
+    8000e3};
 
-static std::string hwName(int hwVer) {
+static std::string hwName(int hwVer)
+{
     if (hwVer == 1)
         return "RSP1";
     if (hwVer == 2)
@@ -64,8 +69,9 @@ static std::string hwName(int hwVer) {
     return "UNK";
 }
 
-void gr::sdrplay::rsp_dev::
-list_available_rsp_devices() {
+void rsp_dev::
+    list_available_rsp_devices()
+{
 
     unsigned int _devIndex = 0;
     unsigned int numDevices;
@@ -73,19 +79,27 @@ list_available_rsp_devices() {
     mir_sdr_DeviceT mirDevices[MAX_SUPPORTED_DEVICES];
     mir_sdr_GetDevices(mirDevices, &numDevices, MAX_SUPPORTED_DEVICES);
 
-    if (((_devIndex + 1 > numDevices) || !mirDevices[_devIndex].devAvail)) {
+    if (((_devIndex + 1 > numDevices) || !mirDevices[_devIndex].devAvail))
+    {
         std::cerr << "Failed to open SDRplay device " << std::endl;
         throw std::runtime_error("Failed to open SDRplay device ");
     }
 
-    for (int i; i < numDevices; i++) {
+    for (int i = 0; i < numDevices; i++)
+    {
 
         std::cerr << "RSP devIndex: [" << i << "] " << hwName(mirDevices[i].hwVer) << " " << mirDevices[i].SerNo
                   << "\r\n";
     }
 }
 
-gr::sdrplay::rsp_dev::rsp_dev() {
+rsp_dev::rsp_dev()
+{
+    _samplesPerPacket = -1;
+    _hwVer = -1;
+    _biasT = 0;
+    _bufferOffset = 0;
+    _bufferSpaceRemaining = 0;
     _auto_gain = true;
     _gRdB = 40;
     _lna = 0;
@@ -106,42 +120,50 @@ gr::sdrplay::rsp_dev::rsp_dev() {
     _debug = 0;
 }
 
-gr::sdrplay::rsp_dev::~rsp_dev() {
-    if (_streaming) {
+rsp_dev::~rsp_dev()
+{
+    if (_streaming)
+    {
         stopStreaming();
     }
 }
 
 // Called by sdrplay streamer thread when data is available
-void gr::sdrplay::rsp_dev::streamCallback(short *xi, short *xq,
+void rsp_dev::streamCallback(short *xi, short *xq,
                                           unsigned int firstSampleNum,
                                           int grChanged, int rfChanged, int fsChanged,
-                                          unsigned int numSamples, unsigned int reset) {
+                                          unsigned int numSamples, unsigned int reset)
+{
     unsigned int i = 0;
     _reinit = false;
 
     boost::mutex::scoped_lock lock(_bufferMutex);
 
-    while (i < numSamples) {
-        if (!_streaming || _reinit) {
+    while (i < numSamples)
+    {
+        if (!_streaming || _reinit)
+        {
             return;
         }
 
-        while (!_buffer) {
+        while (!_buffer)
+        {
             if (boost::cv_status::timeout ==
                 _bufferReady.wait_for(lock, boost::chrono::milliseconds(250)))
                 return;
         }
 
-        while ((i < numSamples) && (_bufferSpaceRemaining > 0)) {
+        while ((i < numSamples) && (_bufferSpaceRemaining > 0))
+        {
             _buffer[_bufferOffset] =
-                    gr_complex(float(xi[i]) / 32768.0, float(xq[i]) / 32768.0);
+                gr_complex(float(xi[i]) / 32768.0, float(xq[i]) / 32768.0);
             i++;
             _bufferOffset++;
             _bufferSpaceRemaining--;
         }
 
-        if (_bufferSpaceRemaining == 0) {
+        if (_bufferSpaceRemaining == 0)
+        {
             _buffer = NULL;
             _bufferReady.notify_one();
         }
@@ -149,12 +171,13 @@ void gr::sdrplay::rsp_dev::streamCallback(short *xi, short *xq,
 }
 
 // Callback wrapper
-void gr::sdrplay::rsp_dev::streamCallbackWrap(short *xi, short *xq,
+void rsp_dev::streamCallbackWrap(short *xi, short *xq,
                                               unsigned int firstSampleNum,
                                               int grChanged, int rfChanged, int fsChanged,
                                               unsigned int numSamples, unsigned int reset, unsigned int hwRemoved,
-                                              void *cbContext) {
-    rsp_dev *obj = (rsp_dev *) cbContext;
+                                              void *cbContext)
+{
+    rsp_dev *obj = (rsp_dev *)cbContext;
     obj->streamCallback(xi, xq,
                         firstSampleNum,
                         grChanged, rfChanged, fsChanged,
@@ -162,36 +185,46 @@ void gr::sdrplay::rsp_dev::streamCallbackWrap(short *xi, short *xq,
 }
 
 // Called by strplay streamer thread when gain reduction is changed.
-void gr::sdrplay::rsp_dev::gainChangeCallback(unsigned int gRdB,
-                                              unsigned int lnaGRdB) {
+void rsp_dev::gainChangeCallback(unsigned int gRdB,
+                                              unsigned int lnaGRdB)
+{
     mir_sdr_GainValuesT gainVals;
     mir_sdr_GetCurrentGain(&gainVals);
 
-    if (gRdB < 200 && _debug) {
+    if (gRdB < 200 && _debug)
+    {
         std::cerr << "GR change, BB+MIX -" << gRdB << "dB, LNA -" << lnaGRdB << std::endl;
     }
 
-    if (gRdB < mir_sdr_GAIN_MESSAGE_START_ID) {
+    if (gRdB < mir_sdr_GAIN_MESSAGE_START_ID)
+    {
         // gainVals.curr is a calibrated gain value
-    } else if (gRdB == mir_sdr_ADC_OVERLOAD_DETECTED) {
+    }
+    else if (gRdB == mir_sdr_ADC_OVERLOAD_DETECTED)
+    {
         mir_sdr_GainChangeCallbackMessageReceived();
         // OVERLOAD DETECTED
-    } else {
+    }
+    else
+    {
         mir_sdr_GainChangeCallbackMessageReceived();
         // OVERLOAD CORRECTED
     }
 }
 
 // Callback wrapper
-void gr::sdrplay::rsp_dev::gainChangeCallbackWrap(unsigned int gRdB,
+void rsp_dev::gainChangeCallbackWrap(unsigned int gRdB,
                                                   unsigned int lnaGRdB,
-                                                  void *cbContext) {
-    rsp_dev *obj = (rsp_dev *) cbContext;
+                                                  void *cbContext)
+{
+    rsp_dev *obj = (rsp_dev *)cbContext;
     obj->gainChangeCallback(gRdB, lnaGRdB);
 }
 
-void gr::sdrplay::rsp_dev::startStreaming(void) {
-    if (_streaming) {
+void rsp_dev::startStreaming(void)
+{
+    if (_streaming)
+    {
         return;
     }
 
@@ -200,13 +233,15 @@ void gr::sdrplay::rsp_dev::startStreaming(void) {
     mir_sdr_ReleaseDeviceIdx();
     mir_sdr_GetDevices(mirDevices, &numDevices, MAX_SUPPORTED_DEVICES);
 
-
-    if (_deviceIndexOrSerial.length() > 2/*It's a SerialNo*/) {
+    if (_deviceIndexOrSerial.length() > 2 /*It's a SerialNo*/)
+    {
 
         bool match = false;
 
-        for (int i; i < numDevices; i++) {
-            if (_deviceIndexOrSerial.compare(std::string(mirDevices[i].SerNo)) == 0) {
+        for (int i = 0; i < numDevices; i++)
+        {
+            if (_deviceIndexOrSerial.compare(std::string(mirDevices[i].SerNo)) == 0)
+            {
                 std::cerr << "Found requested RSP with SerialNO: " << mirDevices[i].SerNo << "\r\n";
                 _devIndex = i;
                 match = true;
@@ -214,9 +249,8 @@ void gr::sdrplay::rsp_dev::startStreaming(void) {
             }
         }
 
-
-
-        if (!match) {
+        if (!match)
+        {
             std::cerr << "FALLBACK TO DEV INDEX = !!!! Could NOT find RSP SerialNO: " << _deviceIndexOrSerial << "\r\n";
         }
     }
@@ -258,23 +292,29 @@ void gr::sdrplay::rsp_dev::startStreaming(void) {
     mir_sdr_DCoffsetIQimbalanceControl(_dcMode, _iqMode);
 
     // Model-specific initialization
-    if (_hwVer == 2) {
+    if (_hwVer == 2)
+    {
         set_antenna(get_antenna());
         mir_sdr_RSPII_RfNotchEnable(_bcastNotch);
-    } else if (_hwVer == 3) {
+    }
+    else if (_hwVer == 3)
+    {
         set_antenna(get_antenna());
         if (_antenna == "HIGHZ")
             mir_sdr_rspDuo_Tuner1AmNotch(_bcastNotch);
         else
             mir_sdr_rspDuo_BroadcastNotch(_bcastNotch);
         mir_sdr_rspDuo_DabNotch(_dabNotch);
-    } else if (_hwVer == 255) {
+    }
+    else if (_hwVer == 255)
+    {
         mir_sdr_rsp1a_BroadcastNotch(_bcastNotch);
         mir_sdr_rsp1a_DabNotch(_dabNotch);
     }
 }
 
-void gr::sdrplay::rsp_dev::stopStreaming(void) {
+void rsp_dev::stopStreaming(void)
+{
     if (!_streaming)
         return;
 
@@ -284,9 +324,10 @@ void gr::sdrplay::rsp_dev::stopStreaming(void) {
     mir_sdr_ReleaseDeviceIdx();
 }
 
-void gr::sdrplay::rsp_dev::reinitDevice(int reason) {
+void rsp_dev::reinitDevice(int reason)
+{
     // If no reason given, reinit everything
-    if (reason == (int) mir_sdr_CHANGE_NONE)
+    if (reason == (int)mir_sdr_CHANGE_NONE)
         reason = (mir_sdr_CHANGE_GR |
                   mir_sdr_CHANGE_FS_FREQ |
                   mir_sdr_CHANGE_RF_FREQ |
@@ -313,91 +354,109 @@ void gr::sdrplay::rsp_dev::reinitDevice(int reason) {
                    &gRdBsystem,
                    mir_sdr_USE_RSP_SET_GR,
                    &_samplesPerPacket,
-                   (mir_sdr_ReasonForReinitT) reason
-    );
+                   (mir_sdr_ReasonForReinitT)reason);
 
     // Set decimation with halfband filter
-    if (reason & (int) mir_sdr_CHANGE_FS_FREQ)
+    if (reason & (int)mir_sdr_CHANGE_FS_FREQ)
         mir_sdr_DecimateControl(_decim != 1, _decim, 1);
 
     _bufferReady.notify_one();
 }
 
-double gr::sdrplay::rsp_dev::set_sample_rate(double rate) {
+double rsp_dev::set_sample_rate(double rate)
+{
     rate = std::min(std::max(rate, 62.5e3), 10e6);
     _fsHz = rate;
 
     // Decimation is required for rates below 2MS/s
     _decim = 1;
-    while (_fsHz < 2e6) {
+    while (_fsHz < 2e6)
+    {
         _decim *= 2;
         _fsHz *= 2;
     }
 
     if (_streaming)
-        reinitDevice((int) mir_sdr_CHANGE_FS_FREQ);
+        reinitDevice((int)mir_sdr_CHANGE_FS_FREQ);
 
     return get_sample_rate();
 }
 
-double gr::sdrplay::rsp_dev::get_sample_rate() {
+double rsp_dev::get_sample_rate() const
+{
     return _fsHz / _decim;
 }
 
-double gr::sdrplay::rsp_dev::set_center_freq(double freq) {
+double rsp_dev::set_center_freq(double freq)
+{
     _rfHz = freq;
 
-    if (_streaming) {
-        reinitDevice((int) mir_sdr_CHANGE_RF_FREQ);
+    if (_streaming)
+    {
+        reinitDevice((int)mir_sdr_CHANGE_RF_FREQ);
     }
 
     return get_center_freq();
 }
 
-double gr::sdrplay::rsp_dev::get_center_freq() {
+double rsp_dev::get_center_freq() const
+{
     return _rfHz;
 }
 
-bool gr::sdrplay::rsp_dev::set_gain_mode(bool automatic) {
+bool rsp_dev::set_gain_mode(bool automatic)
+{
     _auto_gain = automatic;
-    if (_streaming) {
-        if (automatic) {
+    if (_streaming)
+    {
+        if (automatic)
+        {
             mir_sdr_AgcControl(mir_sdr_AGC_5HZ /*TODO: expose argument */, -30 /*TODO: magic number */, 0, 0, 0, 0,
                                checkLNA(_lna));
-        } else {
+        }
+        else
+        {
             mir_sdr_AgcControl(mir_sdr_AGC_DISABLE, -30 /*TODO: magic number */, 0, 0, 0, 0, checkLNA(_lna));
         }
 
-
-        reinitDevice((int) mir_sdr_CHANGE_GR);
+        reinitDevice((int)mir_sdr_CHANGE_GR);
     }
 
     return _auto_gain;
 }
 
-bool gr::sdrplay::rsp_dev::get_gain_mode() {
+bool rsp_dev::get_gain_mode() const
+{
     return _auto_gain;
 }
 
-int gr::sdrplay::rsp_dev::checkLNA(int lna) {
+int rsp_dev::checkLNA(int lna)
+{
     // Maaaagic - see gain tables in API doc
-    if (_hwVer == 1) {
+    if (_hwVer == 1)
+    {
         lna = std::min(3, lna);
-    } else if (_hwVer == 255) {
+    }
+    else if (_hwVer == 255)
+    {
         if (_rfHz < 60000000)
             lna = std::min(6, lna);
         else if (_rfHz >= 1000000000)
             lna = std::min(8, lna);
         else
             lna = std::min(9, lna);
-    } else if (_hwVer == 2) {
+    }
+    else if (_hwVer == 2)
+    {
         if (_rfHz >= 420000000)
             lna = std::min(5, lna);
         else if (_rfHz < 60000000 && _antenna == "HIGHZ")
             lna = std::min(4, lna);
         else
             lna = std::min(8, lna);
-    } else if (_hwVer == 3) {
+    }
+    else if (_hwVer == 3)
+    {
         if (_rfHz >= 1000000000)
             lna = std::min(8, lna);
         else if (_rfHz < 60000000 && _antenna == "HIGHZ")
@@ -411,50 +470,65 @@ int gr::sdrplay::rsp_dev::checkLNA(int lna) {
     return lna;
 }
 
-double gr::sdrplay::rsp_dev::set_gain(double gain) {
+double rsp_dev::set_gain(double gain)
+{
     set_gain(gain, "IF_ATTEN_DB");
     return get_gain("IF_ATTEN_DB");
 }
 
-double gr::sdrplay::rsp_dev::set_gain(double gain, const std::string &name) {
+double rsp_dev::set_gain(double gain, const std::string &name)
+{
     bool bcastNotchChanged = false;
     bool dabNotchChanged = false;
     bool gainChanged = false;
 
-    if (name == "LNA_ATTEN_STEP") {
-        if (gain != _lna)
+    if (name == "LNA_ATTEN_STEP")
+    {
+        if (gain != _lna) //RSP1 will only send bool / 0||1
             gainChanged = true;
         _lna = int(gain);
-    } else if (name == "IF_ATTEN_DB") {
+    }
+    else if (name == "IF_ATTEN_DB")
+    {
         // Ignore out-of-bounds values, since caller knows limits. (GQRX spurious calls).
-        if (gain >= 20.0 && gain <= 59.0 && gain != _gRdB) {
+        if (gain >= 20.0 && gain <= 59.0 && gain != _gRdB)
+        {
             gainChanged = true;
             _gRdB = int(gain);
         }
     }
-        // RSP1A, RSP2
-    else if (name == "BCAST_NOTCH" && (_hwVer == 2 || _hwVer == 3 || _hwVer == 255)) {
+    // RSP1A, RSP2
+    else if (name == "BCAST_NOTCH" && (_hwVer == 2 || _hwVer == 3 || _hwVer == 255))
+    {
         if (int(gain) != _bcastNotch)
             bcastNotchChanged = true;
         _bcastNotch = int(gain);
     }
-        // RSP1A
-    else if (name == "DAB_NOTCH" && (_hwVer == 3 || _hwVer == 255)) {
+    // RSP1A
+    else if (name == "DAB_NOTCH" && (_hwVer == 3 || _hwVer == 255))
+    {
         if (int(gain) != _dabNotch)
             dabNotchChanged = true;
         _dabNotch = int(gain);
     }
 
-    if (_streaming) {
+    if (_streaming)
+    {
         if (gainChanged)
             mir_sdr_RSP_SetGr(_gRdB, checkLNA(_lna), 1 /*absolute*/, 0 /*immediate*/);
 
-        if (bcastNotchChanged) {
-            if (_hwVer == 255) {
+        if (bcastNotchChanged)
+        {
+            if (_hwVer == 255)
+            {
                 mir_sdr_rsp1a_BroadcastNotch(_bcastNotch);
-            } else if (_hwVer == 2) {
+            }
+            else if (_hwVer == 2)
+            {
                 mir_sdr_RSPII_RfNotchEnable(_bcastNotch);
-            } else if (_hwVer == 3) {
+            }
+            else if (_hwVer == 3)
+            {
                 if (_antenna == "HIGHZ")
                     mir_sdr_rspDuo_Tuner1AmNotch(_bcastNotch);
                 else
@@ -462,26 +536,32 @@ double gr::sdrplay::rsp_dev::set_gain(double gain, const std::string &name) {
             }
         }
 
-        if (dabNotchChanged) {
-            if (_hwVer == 255) {
+        if (dabNotchChanged)
+        {
+            if (_hwVer == 255)
+            {
                 mir_sdr_rsp1a_DabNotch(_dabNotch);
-            } else if (_hwVer == 3) {
+            }
+            else if (_hwVer == 3)
+            {
                 mir_sdr_rspDuo_DabNotch(_dabNotch);
             }
         }
 
         if (_streaming)
-            reinitDevice((int) mir_sdr_CHANGE_GR);
+            reinitDevice((int)mir_sdr_CHANGE_GR);
     }
 
     return get_gain();
 }
 
-double gr::sdrplay::rsp_dev::get_gain() {
+double rsp_dev::get_gain() const
+{
     return get_gain("IF_ATTEN_DB");
 }
 
-double gr::sdrplay::rsp_dev::get_gain(const std::string &name) {
+double rsp_dev::get_gain(const std::string &name) const
+{
     if (name == "LNA_ATTEN_STEP")
         return _lna;
     else if (name == "BCAST_NOTCH")
@@ -494,16 +574,22 @@ double gr::sdrplay::rsp_dev::get_gain(const std::string &name) {
         return 0;
 }
 
-std::string gr::sdrplay::rsp_dev::set_antenna(const std::string &antenna) {
+std::string rsp_dev::set_antenna(const std::string &antenna)
+{
     _antenna = antenna;
 
-    if (_streaming) {
-        if (_hwVer == 2) {
+    if (_streaming)
+    {
+        if (_hwVer == 2)
+        {
             // HIGHZ is ANTENNA_B with AmPortSelect
-            if (antenna == "HIGHZ") {
+            if (antenna == "HIGHZ")
+            {
                 mir_sdr_RSPII_AntennaControl(mir_sdr_RSPII_ANTENNA_B);
                 mir_sdr_AmPortSelect(1);
-            } else {
+            }
+            else
+            {
                 if (antenna == "A")
                     mir_sdr_RSPII_AntennaControl(mir_sdr_RSPII_ANTENNA_A);
                 else
@@ -511,51 +597,65 @@ std::string gr::sdrplay::rsp_dev::set_antenna(const std::string &antenna) {
                 mir_sdr_AmPortSelect(0);
             }
 
-            reinitDevice((int) mir_sdr_CHANGE_AM_PORT);
-        } else if (_hwVer == 3) {
-            if (antenna == "HIGHZ") {
+            reinitDevice((int)mir_sdr_CHANGE_AM_PORT);
+        }
+        else if (_hwVer == 3)
+        {
+            if (antenna == "HIGHZ")
+            {
                 mir_sdr_rspDuo_TunerSel(mir_sdr_rspDuo_Tuner_1);
                 mir_sdr_AmPortSelect(1);
-            } else if (antenna == "T1_50ohm") {
+            }
+            else if (antenna == "T1_50ohm")
+            {
                 mir_sdr_rspDuo_TunerSel(mir_sdr_rspDuo_Tuner_1);
                 mir_sdr_AmPortSelect(0);
-            } else {
+            }
+            else
+            {
                 mir_sdr_rspDuo_TunerSel(mir_sdr_rspDuo_Tuner_2);
                 mir_sdr_AmPortSelect(0);
             }
 
-            reinitDevice((int) mir_sdr_CHANGE_AM_PORT);
+            reinitDevice((int)mir_sdr_CHANGE_AM_PORT);
         }
     }
     return antenna;
 }
 
-std::string gr::sdrplay::rsp_dev::get_antenna() {
-    return _antenna.c_str();
+std::string rsp_dev::get_antenna() const
+{
+    return _antenna;
 }
 
-void gr::sdrplay::rsp_dev::set_dc_offset_mode(int mode) {
+void rsp_dev::set_dc_offset_mode(int mode)
+{
     _dcMode = mode == 1;
     mir_sdr_DCoffsetIQimbalanceControl(_dcMode, _iqMode);
 }
 
-void gr::sdrplay::rsp_dev::set_iq_balance_mode(int mode) {
+void rsp_dev::set_iq_balance_mode(int mode)
+{
     _iqMode = mode == 1;
     mir_sdr_DCoffsetIQimbalanceControl(_dcMode, _iqMode);
 }
 
-void gr::sdrplay::rsp_dev::set_debug_mode(int mode) {
+void rsp_dev::set_debug_mode(int mode)
+{
     _debug = mode == 1;
     mir_sdr_DebugEnable(_debug);
 }
 
-double gr::sdrplay::rsp_dev::set_bandwidth(double bandwidth) {
+double rsp_dev::set_bandwidth(double bandwidth)
+{
     _bwType = mir_sdr_BW_8_000;
 
-    for (double bw : bandwidths) {
+    for (double bw : bandwidths)
+    {
         if (bw == 0)
             continue;
-        if (bandwidth <= bw) {
+        if (bandwidth <= bw)
+        {
             _bwType = (mir_sdr_Bw_MHzT)(bw / 1e3);
             break;
         }
@@ -565,18 +665,21 @@ double gr::sdrplay::rsp_dev::set_bandwidth(double bandwidth) {
     std::cerr << "SDRplay bandwidth requested=" << bandwidth
               << " actual=" << actual << std::endl;
 
-    if (_streaming) {
-        reinitDevice((int) mir_sdr_CHANGE_BW_TYPE);
+    if (_streaming)
+    {
+        reinitDevice((int)mir_sdr_CHANGE_BW_TYPE);
     }
 
     return actual;
 }
 
-double gr::sdrplay::rsp_dev::get_bandwidth() {
-    return (double) _bwType * 1e3;
+double rsp_dev::get_bandwidth() const
+{
+    return (double)_bwType * 1e3;
 }
 
-int gr::sdrplay::rsp_dev::fetch_work_buffer(gr_complex *grWorkBuffer, int noutput_items) {
+int rsp_dev::fetch_work_buffer(gr_complex *grWorkBuffer, int noutput_items)
+{
     if (!_streaming)
         startStreaming();
 
@@ -587,34 +690,40 @@ int gr::sdrplay::rsp_dev::fetch_work_buffer(gr_complex *grWorkBuffer, int noutpu
         _bufferOffset = 0;
         _bufferReady.notify_one();
 
-        while (_buffer && _streaming) {
+        while (_buffer && _streaming)
+        {
             _bufferReady.wait(lock);
         }
     }
 
-    if (_streaming) {
+    if (_streaming)
+    {
         return 0;
     }
 }
 
-void gr::sdrplay::rsp_dev::set_if_type(int ifType) {
-    _ifType = (mir_sdr_If_kHzT) ifType;
+void rsp_dev::set_if_type(int ifType)
+{
+    _ifType = (mir_sdr_If_kHzT)ifType;
 
-    if (_streaming) {
-        reinitDevice((int) mir_sdr_CHANGE_IF_TYPE);
+    if (_streaming)
+    {
+        reinitDevice((int)mir_sdr_CHANGE_IF_TYPE);
     }
 }
 
+void rsp_dev::set_lo_mode(int lo_mode)
+{
+    _loMode = (mir_sdr_LoModeT)lo_mode;
 
-void gr::sdrplay::rsp_dev::set_lo_mode(int lo_mode) {
-    _loMode = (mir_sdr_LoModeT) lo_mode;
-
-    if (_streaming) {
-        reinitDevice((int) mir_sdr_CHANGE_LO_MODE);
+    if (_streaming)
+    {
+        reinitDevice((int)mir_sdr_CHANGE_LO_MODE);
     }
 }
 
-void gr::sdrplay::rsp_dev::set_biasT(bool biasT) {
+void rsp_dev::set_biasT(bool biasT)
+{
     if (_hwVer == 2)
         mir_sdr_RSPII_BiasTControl(biasT);
     else if (_hwVer == 3)
@@ -623,6 +732,10 @@ void gr::sdrplay::rsp_dev::set_biasT(bool biasT) {
         mir_sdr_rsp1a_BiasT(biasT);
 }
 
-void gr::sdrplay::rsp_dev::set_deviceIndexOrSerial(std::string deviceIndexOrSerial) {
+void rsp_dev::set_deviceIndexOrSerial(const std::string &deviceIndexOrSerial)
+{
     _deviceIndexOrSerial = deviceIndexOrSerial;
 }
+
+} // namespace sdrplay
+} // namespace gr
