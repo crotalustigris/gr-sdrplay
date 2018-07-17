@@ -2,7 +2,7 @@
 <block>
     <name>RSP1A Source</name>
     <key>sdrplay_rsp1a_source</key>
-    <category>[SDRplay]</category>
+    <category>SDRplay</category>
     <import>import sdrplay</import>
     <make>sdrplay.rsp1a_source($rf_freq, $bw, $agc_enabled, $if_atten_db, $dc_offset_mode, $iq_balance_mode,
         $debug_enabled, $ifType, $lo_mode, $sample_rate, $bcast_notch, $dab_notch, $lna_atten_step, $biasT,
@@ -189,4 +189,7 @@
         <name>out</name>
         <type>complex</type>
     </source>
+    <doc>
+        The SDRplay RSP1A Source block
+    </doc>
 </block>

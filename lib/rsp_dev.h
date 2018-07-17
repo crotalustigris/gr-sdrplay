@@ -43,27 +43,27 @@ namespace gr {
 
             double set_sample_rate(double rate);
 
-            double get_sample_rate(void);
+            double get_sample_rate(void) const;
 
             double set_center_freq(double freq);
 
-            double get_center_freq();
+            double get_center_freq() const;
 
             bool set_gain_mode(bool automatic);
 
-            bool get_gain_mode();
+            bool get_gain_mode() const;
 
             double set_gain(double gain);
 
             double set_gain(double gain, const std::string &name);
 
-            double get_gain();
+            double get_gain() const;
 
-            double get_gain(const std::string &name);
+            double get_gain(const std::string &name) const;
 
             std::string set_antenna(const std::string &antenna);
 
-            std::string get_antenna();
+            std::string get_antenna() const;
 
             void set_dc_offset_mode(int mode);
 
@@ -73,7 +73,7 @@ namespace gr {
 
             double set_bandwidth(double bandwidth);
 
-            double get_bandwidth();
+            double get_bandwidth() const;
 
             void startStreaming(void);
 
@@ -87,7 +87,7 @@ namespace gr {
 
             void set_biasT(bool biasT);
 
-            void set_deviceIndexOrSerial(std::string deviceIndexOrSerial);
+            void set_deviceIndexOrSerial(const std::string &deviceIndexOrSerial);
 
         private:
             void reinitDevice(int reason);

@@ -2,7 +2,7 @@
 <block>
     <name>RSP1 Source</name>
     <key>sdrplay_rsp1_source</key>
-    <category>[SDRplay]</category>
+    <category>SDRplay</category>
     <import>import sdrplay</import>
     <make>sdrplay.rsp1_source($rf_freq, $bw, $agc_enabled, $if_atten_db, $dc_offset_mode, $iq_balance_mode,
         $debug_enabled, $ifType, $lo_mode, $sample_rate, $lna_atten_step, $device_serial)
@@ -120,7 +120,7 @@
     </param>
 
     <param>
-        <name>DeviceIndex or Serial#</name>
+        <name>DeviceIndex</name>
         <key>device_serial</key>
         <value>'0'</value>
         <type>string</type>
@@ -134,10 +134,10 @@
     </param>
 
     <param>
-        <name>LNA Attenuation Step</name>
+        <name>LNA ON/OFF</name>
         <key>lna_atten_step</key>
         <value>0</value>
-        <type>real</type>
+        <type>bool</type>
     </param>
 
     <param>
@@ -165,4 +165,7 @@
         <name>out</name>
         <type>complex</type>
     </source>
+    <doc>
+    The SDRplay RSP1 Source block
+    </doc>
 </block>
