@@ -89,6 +89,8 @@ namespace gr {
 
             void set_deviceIndexOrSerial(const std::string &deviceIndexOrSerial);
 
+            void set_rsp2_ext_ref_out(bool enable);
+
         private:
             void reinitDevice(int reason);
 

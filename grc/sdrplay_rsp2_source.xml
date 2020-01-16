@@ -5,7 +5,7 @@
     <category>SDRplay</category>
     <import>import sdrplay</import>
     <make>sdrplay.rsp2_source($rf_freq, $bw, $agc_enabled, $if_atten_db, $dc_offset_mode, $iq_balance_mode,
-        $debug_enabled, $ifType, $lo_mode, $sample_rate, $lna_atten_step, $device_serial, $antenna)
+        $debug_enabled, $ifType, $lo_mode, $sample_rate, $lna_atten_step, $device_serial, $ref_out_on, $antenna)
     </make>
 
     <callback>set_rf_freq($rf_freq)</callback>
@@ -173,6 +173,21 @@
         <key>iq_balance_mode</key>
         <value>True</value>
         <type>bool</type>
+    </param>
+
+    <param>
+        <name>Reference Output</name>
+        <key>ref_out_on</key>
+        <value>False</value>
+        <type>enum</type>
+        <option>
+            <name>On - True</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>Off - False</name>
+            <key>False</key>
+        </option>
     </param>
 
     <param>

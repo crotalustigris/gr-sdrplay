@@ -40,18 +40,18 @@ namespace gr {
         rsp2_source::make(double rf_freq, double bw, bool agc_enabled, double if_atten_db,
                           bool dc_offset_mode, bool iq_balance_mode, bool debug_enabled, int if_type, int lo_mode,
                           double sample_rate, int lna_atten_step,
-                          std::string device_serial, std::string antenna) {
+                          std::string device_serial, bool ext_ref_out_on, std::string antenna) {
             return gnuradio::get_initial_sptr(
                     new rsp2_source_impl(rf_freq, bw, agc_enabled, if_atten_db, dc_offset_mode, iq_balance_mode,
                                          debug_enabled, if_type, lo_mode, sample_rate,
-                                         lna_atten_step, device_serial, antenna));
+                                         lna_atten_step, device_serial, ext_ref_out_on, antenna));
         }
 
         rsp2_source_impl::rsp2_source_impl(double rf_freq, double bw, bool agc_enabled, double if_atten_db,
                                            bool dc_offset_mode, bool iq_balance_mode, bool debug_enabled, int if_type,
                                            int lo_mode, double sample_rate,
                                            int lna_atten_step,
-                                           std::string device_serial, std::string antenna)
+                                           std::string device_serial, bool ext_ref_out_on, std::string antenna)
                 : gr::sync_block("rsp2_source",
                                  gr::io_signature::make(0, 0, 0),
                                  gr::io_signature::make(1, 1, sizeof(gr_complex))) {
@@ -70,6 +70,7 @@ namespace gr {
             dev->set_gain(lna_atten_step, "LNA_ATTEN_STEP");
             dev->set_deviceIndexOrSerial(device_serial);
             dev->set_antenna(antenna);
+            dev->set_rsp2_ext_ref_out(ext_ref_out_on);
         }
 
         rsp2_source_impl::~rsp2_source_impl() {

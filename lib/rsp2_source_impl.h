@@ -39,7 +39,7 @@ namespace gr {
                                       bool dc_offset_mode, bool iq_balance_mode, bool debug_enabled, int if_type,
                                       int lo_mode, double sample_rate,
                                       int lna_atten_step,
-                                      std::string device_serial, std::string antenna);
+                                      std::string device_serial, bool ext_ref_out_on, std::string antenna);
 
             ~rsp2_source_impl();
 
