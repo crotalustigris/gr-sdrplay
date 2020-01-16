@@ -737,12 +737,5 @@ void rsp_dev::set_deviceIndexOrSerial(const std::string &deviceIndexOrSerial)
     _deviceIndexOrSerial = deviceIndexOrSerial;
 }
 
-void rsp_dev::set_rsp2_ext_ref_out(bool enable)
-{
-    int cval = enable ? 1 : 0;
-
-    mir_sdr_RSPII_ExternalReferenceControl(cval); //Note: at this stage, we don't know if its an RSP2
-}
-
 } // namespace sdrplay
 } // namespace gr

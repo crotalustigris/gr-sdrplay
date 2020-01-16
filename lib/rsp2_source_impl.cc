@@ -30,6 +30,7 @@
 #include <boost/chrono.hpp>
 #include <iostream>
 #include <string>
+#include <mirsdrapi-rsp.h>
 
 namespace gr {
     namespace sdrplay {
@@ -70,7 +71,8 @@ namespace gr {
             dev->set_gain(lna_atten_step, "LNA_ATTEN_STEP");
             dev->set_deviceIndexOrSerial(device_serial);
             dev->set_antenna(antenna);
-            dev->set_rsp2_ext_ref_out(ext_ref_out_on);
+            int cval = ext_ref_out_on ? 1 : 0;
+            mir_sdr_RSPII_ExternalReferenceControl(cval);
         }
 
         rsp2_source_impl::~rsp2_source_impl() {
